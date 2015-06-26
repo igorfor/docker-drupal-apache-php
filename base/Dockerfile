@@ -1,15 +1,21 @@
-FROM ubuntu:12.04
+FROM debian:jessie
 
 MAINTAINER Leonid Makarov <leonid.makarov@blinkreaction.com>
 
 # Set timezone and locale.
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update -qq && apt-get install -y locales -qq && locale-gen en_US.UTF-8 en_us && dpkg-reconfigure locales && dpkg-reconfigure locales && locale-gen C.UTF-8 && /usr/sbin/update-locale LANG=C.UTF-8
+ENV LANG C.UTF-8
+ENV LANGUAGE C.UTF-8
+ENV LC_ALL C.UTF-8
 
 # multiverse repository required to install libapache2-mod-fastcgi
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise multiverse" >> /etc/apt/sources.list
+#RUN echo "deb http://archive.ubuntu.com/ubuntu precise multiverse" >> /etc/apt/sources.list
+
+RUN sed -i 's/main/main contrib non-free/' /etc/apt/sources.list
+RUN apt-get update
+
+
 
 # Prevent services autoload (http://jpetazzo.github.io/2013/10/06/policy-rc-d-do-not-start-services-automatically/)
 RUN echo '#!/bin/sh\nexit 101' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d
@@ -21,8 +27,8 @@ RUN \
     # Install packages
     DEBIAN_FRONTEND=noninteractive \
     apt-get -y install php5-fpm php5-mysql php5-imagick imagemagick \
-    php5-mcrypt php5-curl php5-gd php5-sqlite php5-common php-apc \
-    php-pear php5-json php5-memcache php5-xdebug php5-intl \
+    libc6 php5-mcrypt php5-curl php5-gd php5-sqlite php5-common php-apc \
+    php-pear php5-json debian-archive-keyring php5-memcache php5-xdebug php5-intl \
     mysql-client supervisor \
     apache2-mpm-worker libapache2-mod-fastcgi && \
     # Cleanup
@@ -37,7 +43,7 @@ ADD ./config/apache2/sites-available/default /etc/apache2/sites-available/defaul
 ADD ./config/apache2/sites-available/default-ssl /etc/apache2/sites-available/default-ssl
 ADD ./config/apache2/sites-available/host.conf /etc/apache2/sites-available/includes/host.conf
 ADD ./config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-ADD ./config/apache2/mods-enabled/fastcgi.conf /etc/apache2/mods-enabled/fastcgi.conf
+#ADD ./config/apache2/mods-enabled/fastcgi.conf /etc/apache2/mods-enabled/fastcgi.conf
 ADD ./config/php5/conf.d/xdebug.ini /etc/php5/fpm/conf.d/xdebug.ini
 
 # Generate SSL certificate and key
